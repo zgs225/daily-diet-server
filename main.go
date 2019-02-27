@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -14,6 +14,11 @@ func init() {
 		Host: "0.0.0.0",
 		Port: 10089,
 	}
+
+	log.SetFormatter(&log.TextFormatter{
+		FullTimestamp: true,
+	})
+	log.SetReportCaller(true)
 }
 
 func main() {
