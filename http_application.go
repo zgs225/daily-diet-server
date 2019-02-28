@@ -39,7 +39,7 @@ func (app *HTTPApplication) Run() error {
 	return <-c
 }
 
-func (app *HTTPApplication) HandleRouter(f func(*http.ServeMux)) {
+func (app *HTTPApplication) HandleRouteFunc(f func(*http.ServeMux)) {
 	if app.routerFuncs == nil {
 		app.routerFuncs = make([]func(*http.ServeMux), 0, 0)
 	}

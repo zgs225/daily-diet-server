@@ -22,7 +22,7 @@ func init() {
 }
 
 func main() {
-	app.HandleRouter(api_route_func)
+	app.HandleRouteFunc(api_route_func)
 
 	if err := app.Run(); err != nil {
 		log.Panic(err)
