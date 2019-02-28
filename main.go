@@ -16,9 +16,9 @@ func init() {
 	}
 
 	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp: true,
+		FullTimestamp:             true,
+		EnvironmentOverrideColors: true,
 	})
-	log.SetReportCaller(true)
 }
 
 func main() {

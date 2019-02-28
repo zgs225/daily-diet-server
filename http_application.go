@@ -8,6 +8,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/zgs225/daily-diet-server/http_middlewares"
 )
 
 // HTTPApplication 用于启动 HTTP 服务
@@ -16,8 +17,10 @@ type HTTPApplication struct {
 	Host string
 	Port int
 
-	server *http.Server
-	logger *log.Entry
+	server  *http.Server
+	logger  *log.Entry
+	handler http.Handler
+	router  *http.ServeMux
 }
 
 func (app *HTTPApplication) Run() error {
@@ -38,12 +41,13 @@ func (app *HTTPApplication) Run() error {
 
 func (app *HTTPApplication) init() error {
 	app.initLogger()
+	app.initHTTPHandler()
 
 	if err := app.initServer(); err != nil {
 		return err
 	}
 
-	http.DefaultServeMux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+	app.router.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "text/plain;charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		io.WriteString(w, app.Name)
@@ -60,10 +64,17 @@ func (app *HTTPApplication) initLogger() error {
 	return nil
 }
 
+func (app *HTTPApplication) initHTTPHandler() error {
+	app.router = http.NewServeMux()
+	d := &http_middlewares.HTTPLogDecorator{Logger: app.logger}
+	app.handler = d.Decorate(app.router)
+	return nil
+}
+
 func (app *HTTPApplication) initServer() error {
 	app.server = &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", app.Host, app.Port),
-		Handler:      app,
+		Handler:      app.handler,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		ConnState: func(conn net.Conn, stat http.ConnState) {
@@ -71,8 +82,4 @@ func (app *HTTPApplication) initServer() error {
 		},
 	}
 	return nil
-}
-
-func (app *HTTPApplication) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	http.DefaultServeMux.ServeHTTP(w, req)
 }
