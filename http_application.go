@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"time"
@@ -17,10 +16,11 @@ type HTTPApplication struct {
 	Host string
 	Port int
 
-	server  *http.Server
-	logger  *log.Entry
-	handler http.Handler
-	router  *http.ServeMux
+	server      *http.Server
+	logger      *log.Entry
+	handler     http.Handler
+	router      *http.ServeMux
+	routerFuncs []func(*http.ServeMux)
 }
 
 func (app *HTTPApplication) Run() error {
@@ -39,20 +39,18 @@ func (app *HTTPApplication) Run() error {
 	return <-c
 }
 
+func (app *HTTPApplication) HandleRouter(f func(*http.ServeMux)) {
+	if app.routerFuncs == nil {
+		app.routerFuncs = make([]func(*http.ServeMux), 0, 0)
+	}
+	app.routerFuncs = append(app.routerFuncs, f)
+}
+
 func (app *HTTPApplication) init() error {
 	app.initLogger()
 	app.initHTTPHandler()
-
-	if err := app.initServer(); err != nil {
-		return err
-	}
-
-	app.router.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Set("Content-Type", "text/plain;charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, app.Name)
-	})
-
+	app.initServer()
+	app.invokeRouterFuncs()
 	return nil
 }
 
@@ -80,6 +78,16 @@ func (app *HTTPApplication) initServer() error {
 		ConnState: func(conn net.Conn, stat http.ConnState) {
 			app.logger.Debugf("A connection state changed: %s", stat.String())
 		},
+	}
+	return nil
+}
+
+func (app *HTTPApplication) invokeRouterFuncs() error {
+	if app.routerFuncs == nil {
+		return nil
+	}
+	for _, f := range app.routerFuncs {
+		f(app.router)
 	}
 	return nil
 }
